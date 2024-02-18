@@ -8,6 +8,9 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "^3.11"
 requests = "^2.31.0"
+beautifulsoup4 = "^4.12.3"
+lxml = "^5.1.0"
+pathvalidate = "^3.2.0"
 
 
 [build-system]
