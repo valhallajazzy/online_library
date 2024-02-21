@@ -59,6 +59,25 @@ def download_picture(folder='pictures'):
             continue
 
 
+def download_comments(folder='comments'):
+    for number in range(1, 11):
+        os.makedirs(f'{folder}', exist_ok=True)
+        url = f'https://tululu.org/b{number}'
+        response = requests.get(url)
+        response.raise_for_status()
+        soup = BeautifulSoup(response.text, 'lxml')
+        divs_with_comments = soup.find_all('div', class_='texts')
+        comments = ""
+        for div in divs_with_comments:
+            comment = div.find('span')
+            if comment:
+                comments += f"{comment.text} \n"
+        if comments != "":
+            with open(f"{folder}/{number}.txt", 'w') as file:
+                file.write(comments)
+
+
 if __name__ == '__main__':
     download_txt()
     download_picture()
+    download_comments()
