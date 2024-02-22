@@ -10,15 +10,20 @@ def check_for_redirect(response):
         raise requests.HTTPError("Произошел redirect")
 
 
+def get_title_and_author_of_book(soup):
+    author_and_title = soup.find('div', id='content').find('h1').text.split(' \xa0 :: \xa0 ')
+    title = sanitize_filename(author_and_title[0].strip())
+    author = sanitize_filename(author_and_title[1].strip())
+    return {'title': title, 'author': author}
+
+
 def create_path_to_file(number, folder='books/'):
     os.makedirs(f'{folder}', exist_ok=True)
     url = f'https://tululu.org/b{number}'
     response = requests.get(url)
     response.raise_for_status()
     soup = BeautifulSoup(response.text, 'lxml')
-    author_and_title = soup.find('title').text.split('-')
-    title = author_and_title[1].split(',')[0].strip()
-    title = sanitize_filename(title)
+    title = get_title_and_author_of_book(soup)['title']
     title_with_id = f"{number}. {title}.txt"
     path = os.path.join(folder, title_with_id)
     return path
@@ -38,7 +43,7 @@ def download_txt():
             continue
 
 
-def download_picture(folder='pictures'):
+def download_pictures(folder='pictures'):
     for number in range(1, 11):
         os.makedirs(f'{folder}', exist_ok=True)
         url = f'https://tululu.org/b{number}'
@@ -59,25 +64,50 @@ def download_picture(folder='pictures'):
             continue
 
 
-def download_comments(folder='comments'):
+def get_comments(folder='comments'):
     for number in range(1, 11):
-        os.makedirs(f'{folder}', exist_ok=True)
         url = f'https://tululu.org/b{number}'
         response = requests.get(url)
         response.raise_for_status()
         soup = BeautifulSoup(response.text, 'lxml')
         divs_with_comments = soup.find_all('div', class_='texts')
-        comments = ""
-        for div in divs_with_comments:
-            comment = div.find('span')
-            if comment:
-                comments += f"{comment.text} \n"
-        if comments != "":
-            with open(f"{folder}/{number}.txt", 'w') as file:
-                file.write(comments)
+        try:
+            title = get_title_and_author_of_book(soup)['title']
+            comments = ""
+            for div in divs_with_comments:
+                comment = div.find('span')
+                if comment:
+                    comments += f"{comment.text} \n"
+            print(title)
+            print(comments)
+        except IndexError:
+            continue
+        except AttributeError:
+            continue
+
+
+def get_books_genres():
+    for number in range(1, 11):
+        url = f'https://tululu.org/b{number}'
+        response = requests.get(url)
+        response.raise_for_status()
+        soup = BeautifulSoup(response.text, 'lxml')
+        try:
+            title = get_title_and_author_of_book(soup)['title']
+            genres = []
+            links_with_genres = soup.find('span', class_='d_book').find_all('a')
+            for link in links_with_genres:
+                genres.append(link.text)
+            print(f"Заголовок: {title}")
+            print(genres)
+        except IndexError:
+            continue
+        except AttributeError:
+            continue
 
 
 if __name__ == '__main__':
-    download_txt()
-    download_picture()
-    download_comments()
+    # download_txt()
+    # download_pictures()
+    # get_comments()
+    get_books_genres()
