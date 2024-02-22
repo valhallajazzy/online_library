@@ -1,3 +1,5 @@
 .venv
 poetry.lock
 .idea/
+books/
+pictures/
