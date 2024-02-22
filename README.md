@@ -1,8 +1,8 @@
 # Скачиваем книги из онлайн-библиотеки tululu.org
 ![Screenshot](https://github.com/valhallajazzy/online_library/blob/main/pic/maintulu.png)
 
-Текст книг скачиваются в папку `books/` корневой директориии проекта  
-Обложки книг скачиваются в папку `pictures/` корневой директориии проекта
+* Текст книг скачиваются в папку `books/` корневой директориии проекта  
+* Обложки книг скачиваются в папку `pictures/` корневой директориии проекта
 
 ![Screenshot](https://github.com/valhallajazzy/online_library/blob/main/pic/pathtulu.png)
 
