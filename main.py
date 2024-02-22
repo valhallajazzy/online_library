@@ -106,8 +106,34 @@ def get_books_genres():
             continue
 
 
+def parse_book_page(soup):
+    try:
+        author_and_title = soup.find('div', id='content').find('h1').text.split(' \xa0 :: \xa0 ')
+        title = sanitize_filename(author_and_title[0].strip())
+        author = sanitize_filename(author_and_title[1].strip())
+        genres = []
+        links_with_genres = soup.find('span', class_='d_book').find_all('a')
+        for link in links_with_genres:
+            genres.append(link.text)
+        divs_with_comments = soup.find_all('div', class_='texts')
+        comments = []
+        for div in divs_with_comments:
+            comment = div.find('span')
+            if comment:
+                comments.append(comment.text)
+        return {
+                'title': title,
+                'author': author,
+                'genres': genres,
+                'comments': comments
+                }
+    except AttributeError:
+        return None
+
+
+
 if __name__ == '__main__':
     # download_txt()
     # download_pictures()
     # get_comments()
-    get_books_genres()
+    # get_books_genres()
