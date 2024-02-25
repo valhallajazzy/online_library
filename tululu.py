@@ -76,15 +76,16 @@ def download_book(book_id):
     print(f"Название: {about_book['title']} \nАвтор: {about_book['author']} \n")
 
 
+
 def download_books_in_range(start_id, end_id):
     for book_id in range(start_id, end_id + 1):
         try:
             download_book(book_id)
-        except requests.exceptions.ConnectionError:
-            print('Ошибка интернет-соединения, переподключаюсь')
+        except requests.ConnectionError:
+            logging.error('Ошибка интернет-соединения, переподключаюсь')
             sleep(5)
-        except requests.exceptions.HTTPError:
-            print(f'Ошибка http-подключения к серверу с id книги - {book_id}, переподключаюсь')
+        except requests.HTTPError:
+            logging.error(f'Ошибка http-подключения к серверу с id книги - {book_id}, переподключаюсь')
             sleep(5)
         except RedirectException:
             logging.warning(f'На странице с ожидаемым id книги - {book_id}, '

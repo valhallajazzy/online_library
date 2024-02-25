@@ -1,5 +1,5 @@
 # Скачиваем книги из онлайн-библиотеки tululu.org
-![Screenshot](https://github.com/valhallajazzy/online_library/blob/main/pic/maintulu.png)
+![Screenshot](https://github.com/valhallajazzy/online_library/blob/main/pic/miantu.png)
 
 * Текст книг скачиваются в папку `books/` корневой директориии проекта  
 * Обложки книг скачиваются в папку `pictures/` корневой директориии проекта
@@ -22,8 +22,8 @@ $ poetry shell
 * Из корневой директории проекта запускаем скрипт командой:
 
 ```console
-$ python3 tululu.py <start_id> <end_id>
+$ python3 tululu.py -s <start_id> -e <end_id>
 ```
 
-PS Нужны обязательные аргументы `<start_id>`, `<end_id>` для указания диапазона скачиваемых книг с сайта,  
-без них скачивание не начнется.
+PS `<start_id>`, `<end_id>` - срез id книг, которые нужно скачать. Аргументами по умолчанию являются `<start_id>` - 1,  
+`<end_id>` - 10, то есть скрипт может запуститься и без аргументов.
