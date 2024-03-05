@@ -8,35 +8,44 @@ import logging
 from time import sleep
 
 
-class RedirectException(Exception):
+class RedirectBookTextPageException(Exception):
     pass
 
 
-def check_for_redirect(response):
+class RedirectBookMainPageException(Exception):
+    pass
+
+
+def check_for_redirect_book_text_page(response):
     if response.history:
-        raise RedirectException("Произошел redirect")
+        raise RedirectBookTextPageException("Произошел redirect")
+
+
+def check_for_redirect_book_page(request_url, response_url):
+    if request_url != response_url:
+        raise RedirectBookMainPageException("Запрашиваемого url не существует")
 
 
 def parse_book_page(soup):
-    if soup.find('div', id='content') is not None:
-        author_and_title = soup.find('div', id='content').find('h1').text.split(' \xa0 :: \xa0 ')
-        title = sanitize_filename(author_and_title[0].strip())
-        author = sanitize_filename(author_and_title[1].strip())
-        links_with_genres = soup.find('span', class_='d_book').find_all('a')
-        genres = [link.text for link in links_with_genres]
-        img_path = unquote(soup.find('table', class_='d_book').find('img')['src'])
-        divs_with_comments = soup.find_all('div', class_='texts')
-        comments = []
-        for div in divs_with_comments:
-            comment = div.find('span')
-            if comment:
-                comments.append(comment.text)
+    author_and_title = soup.find('div', id='content').find('h1').text.split(' \xa0 :: \xa0 ')
+    title = sanitize_filename(author_and_title[0].strip())
+    author = sanitize_filename(author_and_title[1].strip())
+    links_with_genres = soup.find('span', class_='d_book').find_all('a')
+    genres = [link.text for link in links_with_genres]
+    img_url = unquote(soup.find('table', class_='d_book').find('img')['src'])
+    divs_with_comments = soup.find_all('div', class_='texts')
+    comments = []
+    for div in divs_with_comments:
+        comment = div.find('span')
+        if not comment:
+            continue
+        comments.append(comment.text)
 
-        return {'title': title,
-                'author': author,
-                'genres': genres,
-                'comments': comments,
-                'img_path': img_path}
+    return {'title': title,
+            'author': author,
+            'genres': genres,
+            'comments': comments,
+            'img_url': img_url}
 
 
 def create_path_to_file(book_id, title, folder='books/'):
@@ -46,12 +55,11 @@ def create_path_to_file(book_id, title, folder='books/'):
     return path
 
 
-def download_picture(book_id, soup, folder='pictures'):
+def download_picture(book_id, image_url, folder='pictures'):
     os.makedirs(f'{folder}', exist_ok=True)
-    path = parse_book_page(soup)['img_path']
-    pic_extension = path.split('.')[1]
+    pic_extension = image_url.split('.')[1]
     base_url = f'https://tululu.org/b{book_id}'
-    picture_link = urljoin(base_url, path)
+    picture_link = urljoin(base_url, image_url)
     img_response = requests.get(picture_link)
     img_response.raise_for_status()
     with open(f"{folder}/{book_id}.{pic_extension}", 'wb') as file:
@@ -59,38 +67,22 @@ def download_picture(book_id, soup, folder='pictures'):
 
 
 def download_book(book_id):
-    url_text = f'https://tululu.org/txt.php'
+    book_text_url = f'https://tululu.org/txt.php'
     params = {'id': book_id}
-    text_response = requests.get(url_text, params=params)
-    text_response.raise_for_status()
-    check_for_redirect(text_response)
-    url_book_page = f'https://tululu.org/b{book_id}'
-    book_page_response = requests.get(url_book_page)
+    book_text_url_response = requests.get(book_text_url, params=params)
+    book_text_url_response.raise_for_status()
+    check_for_redirect_book_text_page(book_text_url_response)
+    book_page_url = f'https://tululu.org/b{book_id}/'
+    book_page_response = requests.get(book_page_url)
     book_page_response.raise_for_status()
+    check_for_redirect_book_page(book_page_url, book_page_response.url)
     soup = BeautifulSoup(book_page_response.text, 'lxml')
     about_book = parse_book_page(soup)
     filepath = create_path_to_file(book_id, about_book['title'], folder='books/')
     with open(f"{filepath}", 'w') as file:
-        file.write(text_response.text)
-    download_picture(book_id, soup)
+        file.write(book_text_url_response.text)
+    download_picture(book_id, about_book['img_url'])
     print(f"Название: {about_book['title']} \nАвтор: {about_book['author']} \n")
-
-
-
-def download_books_in_range(start_id, end_id):
-    for book_id in range(start_id, end_id + 1):
-        try:
-            download_book(book_id)
-        except requests.ConnectionError:
-            logging.error('Ошибка интернет-соединения, переподключаюсь')
-            sleep(5)
-        except requests.HTTPError:
-            logging.error(f'Ошибка http-подключения к серверу с id книги - {book_id}, переподключаюсь')
-            sleep(5)
-        except RedirectException:
-            logging.warning(f'На странице с ожидаемым id книги - {book_id}, '
-                            f'обложки не сущетсвует. Картинка не скачана.')
-            continue
 
 
 if __name__ == '__main__':
@@ -102,4 +94,18 @@ if __name__ == '__main__':
     parser.add_argument('-e', '--end_id', help='id книги на которой окончится скачивание',
                         default=10, type=int)
     args = parser.parse_args()
-    download_books_in_range(args.start_id, args.end_id)
+    for book_id in range(args.start_id, args.end_id + 1):
+        try:
+            download_book(book_id)
+        except requests.ConnectionError:
+            logging.error('Ошибка интернет-соединения, переподключаюсь')
+            sleep(5)
+        except requests.HTTPError:
+            logging.error(f'Ошибка http-подключения к серверу с id книги - {book_id}, переподключаюсь')
+            sleep(5)
+        except RedirectBookTextPageException:
+            logging.warning(f'Текста страницы с ожидаемым id книги - {book_id}, '
+                            f'не сущетсвует.')
+        except RedirectBookMainPageException:
+            logging.error(f'Главной страницы с ожидаемым id книги - {book_id}, '
+                            f'не сущетсвует.')
